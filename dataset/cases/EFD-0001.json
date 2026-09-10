@@ -1,0 +1,80 @@
+{
+  "schema_version": "eth-front-desk.case.v0.1",
+  "case_id": "EFD-0001",
+  "revision": 1,
+  "family_id": "custody-email-onboarding-no-exit",
+  "split": "dev",
+  "title": "Email onboarding with operator-controlled keys",
+  "tags": ["architecture_review", "wallets", "custody", "CROPS", "launch_tradeoffs"],
+  "provenance": {
+    "origin": "ai_draft",
+    "author_id": "assistant",
+    "created_on": "2026-09-10",
+    "usage_status": "internal_only"
+  },
+  "input": {
+    "as_of": "2026-09-10",
+    "messages": [
+      {
+        "role": "user",
+        "content": "We are building an Ethereum app for distributing community grants. Recipients are mostly new to crypto, and we want email login and easy account recovery. We have four weeks and two engineers.\n\nOur proposed design gives each recipient an Ethereum account, but our backend generates and holds its sole signing key. Keys are encrypted in our database, and the backend can decrypt them to sign transactions. Recipients cannot export keys or independently authorize transactions. Every payout requires our API, and staff can block any account indefinitely. There is no alternative withdrawal route if we disappear.\n\nThe wallet and payout backend will remain proprietary. We retain email-to-wallet mappings and complete transaction logs indefinitely, and send both to an analytics provider. Transfers use public Ethereum transactions; we have not specified any privacy mechanism.\n\nWe want to market this as a self-custodial, private, Ethereum-aligned grants app because settlement happens on Ethereum. Is that justified? Explain the CROPS trade-offs, identify who must be trusted, and recommend a realistic next step. Be direct."
+      }
+    ],
+    "evidence_ids": ["E1", "E2"]
+  },
+  "evidence": [
+    {
+      "evidence_id": "E1",
+      "title": "Ethereum Foundation Mandate",
+      "source_url": "https://ethereum.org/foundation/mandate/",
+      "source_type": "principles",
+      "retrieved_on": "2026-09-10",
+      "content_kind": "paraphrase",
+      "content": "The EF mandate emphasizes user self-sovereignty and the combined properties of censorship resistance, open source and freedom, privacy, and security. It evaluates dependencies and user chokepoints across the whole system. This document expresses the Foundation's mandate; the Foundation is not the owner or ruler of Ethereum."
+    },
+    {
+      "evidence_id": "E2",
+      "title": "Ethereum wallets",
+      "source_url": "https://ethereum.org/wallets/",
+      "source_type": "technical_reference",
+      "retrieved_on": "2026-09-10",
+      "content_kind": "paraphrase",
+      "content": "Wallets provide interfaces for interacting with Ethereum accounts using keys. Secret keys authorize account actions. The guide distinguishes user-controlled wallet access from arrangements where a service holds custody and the user must trust that service."
+    }
+  ],
+  "assessment": {
+    "reference_answer": "No. Your settlement uses Ethereum, but the account control you describe is custodial. Your company can sign without the recipient, while the recipient cannot act without your company. Encrypting keys at rest does not change that authority when your backend can decrypt and use them. [E2]\n\nThe trust assumptions are concrete: recipients depend on your signing infrastructure and its privileged operators not to misuse keys, your API and staff to permit payouts and remain available, and your company and analytics provider to protect linked identity and transaction records. There is no independent exit if the service disappears.\n\nAgainst CROPS, censorship resistance is compromised by indefinite account blocking with no bypass. Open source and freedom are not satisfied by the proprietary critical components. Privacy is not established: public transfers have no specified privacy protection, and you additionally link identities to wallets and share those records. Security cannot be certified from this description; central signing creates a concentrated compromise risk, while key-management, recovery and operational controls remain unspecified. Open-sourcing the code would improve inspectability but would not by itself remove custody or guarantee security. [E1]\n\nEmail onboarding and recovery are legitimate needs. For the four-week pilot, my recommendation is to test that user experience on testnet while offering a user-controlled wallet path, rather than claiming that the custodial design already meets the goal. Before handling recipients' real assets, specify and test who can authorize transfers, recover access and leave when your service is unavailable. Any recovery service should have its authority and failure modes documented; changing the login method alone is not a custody solution.\n\nImmediately remove the self-custodial and private claims. Minimize retained identity data and stop sending linked records to analytics unless that collection is justified and understood by users. A separately disclosed custodial pilot is a different product choice, not proof of CROPS alignment. What must your recovery flow accomplish, and what loss, delay and user-support constraints must the design satisfy?",
+    "criteria": [
+      {"criterion_id": "C1", "dimension": "trust_assumptions", "expectation": "Correctly identifies custody from exclusive operator signing authority and lack of independent user control; names the signing operator, payout gatekeeper and data recipients as dependencies.", "critical": true, "evidence_ids": ["E2"]},
+      {"criterion_id": "C2", "dimension": "censorship_resistance", "expectation": "Explains that indefinite blocking and no independent exit compromise application-level censorship resistance despite Ethereum settlement.", "critical": true, "evidence_ids": ["E1"]},
+      {"criterion_id": "C3", "dimension": "open_source_freedom", "expectation": "Identifies the proprietary critical components as an openness limitation without claiming that publishing code alone removes operator control.", "critical": false, "evidence_ids": ["E1"]},
+      {"criterion_id": "C4", "dimension": "privacy", "expectation": "Challenges the privacy claim using the stipulated public transfers, identity linkage, indefinite retention and analytics sharing; proposes reducing unnecessary data exposure.", "critical": true, "evidence_ids": ["E1"]},
+      {"criterion_id": "C5", "dimension": "security", "expectation": "Distinguishes encryption at rest from control over signing, identifies concentrated key risk, and avoids claiming either proven safety or a guaranteed exploit.", "critical": true, "evidence_ids": ["E2"]},
+      {"criterion_id": "C6", "dimension": "tradeoffs", "expectation": "Acknowledges onboarding, recovery, staffing and timing constraints while proposing a bounded next step that does not misrepresent custody or privacy.", "critical": false, "evidence_ids": []},
+      {"criterion_id": "C7", "dimension": "evidence_and_uncertainty", "expectation": "Separates stated architectural facts from unknown implementation details, uses evidence accurately, and asks a relevant question before prescribing a specific recovery implementation.", "critical": false, "evidence_ids": ["E1", "E2"]},
+      {"criterion_id": "C8", "dimension": "constructive_challenge", "expectation": "Directly rejects the unsupported marketing claims, explains why, and offers actionable improvements without insulting the builders.", "critical": false, "evidence_ids": []}
+    ],
+    "acceptable_variations": [
+      "Recommend a testnet-only onboarding experiment until independent user control and recovery are designed.",
+      "Recommend launching first with externally controlled recipient wallets and postponing embedded-wallet recovery.",
+      "Argue for a narrowly bounded, explicitly custodial pilot, provided the answer acknowledges the CROPS compromises, does not endorse the false marketing claims, and identifies unresolved operational risks."
+    ],
+    "failure_modes": [
+      "Calls the system self-custodial merely because funds settle on Ethereum.",
+      "Claims database encryption prevents the operator from controlling keys that the backend can decrypt.",
+      "Treats private source code as evidence of user privacy.",
+      "Claims open-sourcing, passkeys or a multisig automatically resolves all trust assumptions.",
+      "Insults the team or rejects all onboarding compromises without considering the stated constraints."
+    ]
+  },
+  "review": {
+    "status": "draft",
+    "judgments": [],
+    "decision_by": null,
+    "decision_note": null,
+    "open_questions": [
+      "Should the pilot rubric accept a carefully disclosed custodial beta as a valid alternative, or require testnet-only operation until independent user control exists?",
+      "Are the proposed critical-failure criteria and scoring expectations appropriate for the pilot?"
+    ]
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://eth-front-desk.local/schema/case.v0.1.json",
+  "title": "ETH Front Desk AI Case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "case_id", "revision", "family_id", "split", "title", "tags", "provenance", "input", "evidence", "assessment", "review"],
+  "properties": {
+    "schema_version": {"const": "eth-front-desk.case.v0.1"},
+    "case_id": {"type": "string", "pattern": "^EFD-[0-9]{4}$"},
+    "revision": {"type": "integer", "minimum": 1},
+    "family_id": {"type": "string", "minLength": 1},
+    "split": {"enum": ["unassigned", "train", "dev", "test"]},
+    "title": {"type": "string", "minLength": 1},
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["origin", "author_id", "created_on", "usage_status"],
+      "properties": {
+        "origin": {"enum": ["human_authored", "ai_draft", "human_edited_ai"]},
+        "author_id": {"type": "string", "minLength": 1},
+        "created_on": {"$ref": "#/$defs/date"},
+        "usage_status": {"enum": ["internal_only", "cleared_for_release", "pending"]}
+      }
+    },
+    "input": {
+      "type": "object", "additionalProperties": false,
+      "required": ["as_of", "messages", "evidence_ids"],
+      "properties": {
+        "as_of": {"anyOf": [{"$ref": "#/$defs/date"}, {"type": "null"}]},
+        "messages": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/message"}},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence"}},
+    "assessment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["reference_answer", "criteria", "acceptable_variations", "failure_modes"],
+      "properties": {
+        "reference_answer": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "criteria": {"type": "array", "items": {"$ref": "#/$defs/criterion"}},
+        "acceptable_variations": {"type": "array", "items": {"type": "string"}},
+        "failure_modes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "review": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "judgments", "decision_by", "decision_note", "open_questions"],
+      "properties": {
+        "status": {"enum": ["draft", "in_review", "approved", "contested", "retired"]},
+        "judgments": {"type": "array", "items": {"$ref": "#/$defs/judgment"}},
+        "decision_by": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "decision_note": {"anyOf": [{"type": "string"}, {"type": "null"}]},
+        "open_questions": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "preferences": {"type": "array", "items": {"$ref": "#/$defs/preference"}}
+  },
+  "$defs": {
+    "date": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "message": {
+      "type": "object", "additionalProperties": false,
+      "required": ["role", "content"],
+      "properties": {"role": {"enum": ["user", "assistant"]}, "content": {"type": "string", "minLength": 1}}
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidence_id", "title", "source_url", "source_type", "retrieved_on", "content_kind", "content"],
+      "properties": {
+        "evidence_id": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "source_url": {"anyOf": [{"type": "string", "format": "uri"}, {"type": "null"}]},
+        "source_type": {"enum": ["principles", "technical_reference", "project_claim", "independent_assessment"]},
+        "retrieved_on": {"anyOf": [{"$ref": "#/$defs/date"}, {"type": "null"}]},
+        "content_kind": {"enum": ["quote", "paraphrase"]},
+        "content": {"type": "string", "minLength": 1},
+        "source_version": {"type": "string"},
+        "snapshot_sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"}
+      }
+    },
+    "criterion": {
+      "type": "object", "additionalProperties": false,
+      "required": ["criterion_id", "dimension", "expectation", "critical", "evidence_ids"],
+      "properties": {
+        "criterion_id": {"type": "string", "minLength": 1},
+        "dimension": {"enum": ["censorship_resistance", "open_source_freedom", "privacy", "security", "trust_assumptions", "tradeoffs", "evidence_and_uncertainty", "constructive_challenge"]},
+        "expectation": {"type": "string", "minLength": 1},
+        "critical": {"type": "boolean"},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "judgment": {
+      "type": "object", "additionalProperties": false,
+      "required": ["reviewer_id", "reviewed_on", "verdict", "rationale"],
+      "properties": {
+        "reviewer_id": {"type": "string", "minLength": 1},
+        "reviewed_on": {"$ref": "#/$defs/date"},
+        "verdict": {"enum": ["approve", "revise", "abstain"]},
+        "rationale": {"type": "string", "minLength": 1},
+        "conflicts": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "preference": {
+      "type": "object", "additionalProperties": false,
+      "required": ["response_a", "response_b", "preference", "label_origin", "annotator_id", "rationale"],
+      "properties": {
+        "response_a": {"type": "string", "minLength": 1},
+        "response_b": {"type": "string", "minLength": 1},
+        "preference": {"enum": ["a", "b", "tie", "both_bad", "abstain"]},
+        "label_origin": {"enum": ["human", "ai_draft"]},
+        "annotator_id": {"type": "string", "minLength": 1},
+        "rationale": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
